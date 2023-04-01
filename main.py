@@ -31,8 +31,7 @@ class ArtCreatorAgent:
         self.source = None
         self.use_google_api = False
         # This will be used as a reference sentence to compare sentences by "artisticness"
-        self.artistic_ideal = "A captivating scene that blends visual elements, ideas, and emotions in a creative, harmonious, and imaginative way."
-
+        self.artistic_ideal = None
         # Check and set API keys
         self.check_api_keys()
 
@@ -74,13 +73,14 @@ class ArtCreatorAgent:
         random_emotion = random.choice(emotions)
 
         # Create a prompt to ask the model to generate a novel mood
-        prompt = f"Generate a short yet novel aesthetic related to '{random_emotion}. No more than 10 words."
+        prompt = f"Generate a novel aesthetic related to the emotion '{random_emotion}'."
+        self.artistic_ideal = prompt
 
         # Make the API call
         response = openai.Completion.create(
             engine="text-davinci-003",
             prompt=prompt,
-            max_tokens=15,
+            max_tokens=100,
             n=1,
             stop=None,
             temperature=0.9,
@@ -225,6 +225,9 @@ class ArtCreatorAgent:
         # Split the text into sentences
         sentences = list(nlp(text).sents)
 
+        # This sentence will be compared to all other sentences
+        reference_tokens = nlp(self.artistic_ideal)
+
         # Find the most artistic sentence by comparing their artistic scores
         mx = 0 # max similarity
         most_artistic = None
@@ -232,11 +235,8 @@ class ArtCreatorAgent:
             if type(sentence.text) == None:
                 break
 
-            sentence_tokens = nlp(sentence.text)
-            reference_tokens = nlp(self.artistic_ideal)
-
             # Calculate the similarity between the sentences using word embeddings
-            similarity = sentence_tokens.similarity(reference_tokens)
+            similarity = nlp(sentence.text).similarity(reference_tokens)
 
             # Catch any None values (happens if no similarity is found..?)
             if most_artistic == None:
@@ -246,11 +246,11 @@ class ArtCreatorAgent:
                 # print(f"Ooo this sentence is more artsy...: {sentence.text}\n")
                 mx = similarity
                 most_artistic = sentence
-                star = " ⭐"
+                star = " ⭐" + str(similarity)
             else:
                 star = ""
             preview = sentence.text[:15]
-            print(f"getting inspiredd: {preview}"+ ("."*math.floor(similarity*25))+star)
+            print(f"getting inspiredd: {preview}"+ ("."*math.floor(similarity*10))+star)
 
         return {"text":most_artistic.text.replace('\n', ''), "score":mx}
 
