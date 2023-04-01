@@ -119,6 +119,7 @@ class ArtCreatorAgent:
         search_results = soup.select(".g")
 
         # Search for content related to the agent's moods
+        threshhold = 0.8
         for result in search_results:
             url = result.select_one("a")["href"]
             print("ok imma clickin on", url, "\n")
@@ -126,11 +127,13 @@ class ArtCreatorAgent:
             soup = BeautifulSoup(response.text, "html.parser")
 
             art = self.most_artistic_sentence(soup)
-            if art["score"] > 0.8:
+            if art["score"] > threshhold:
                 print("\n\n Okey so hear me out, i read this on the web and thought it was sooo cooool:\n\n", art["text"], "\n")
                 self.art_topic = art["text"]
                 self.source = url
                 break
+            else:
+                threshhold -= 0.1
 
     def scrape_web_with_api(self):
         """Scrape the web using Google's Custom Search API to find a topic
