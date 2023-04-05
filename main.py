@@ -36,17 +36,19 @@ class ArtCreatorAgent:
         self.check_api_keys()
 
     def check_api_keys(self):
-        if GOOGLE_KEY != "YOUR_GOOGLE_KEY" and GOOGLE_CX != "YOUR_GOOGLE_CX":
+        # Google API keys are optional but recommended
+        if (GOOGLE_KEY in ("YOUR_GOOGLE_KEY", "") or GOOGLE_CX in ("YOUR_GOOGLE_CX", "")):
+            print("oh shoot, i dont have google api keys :(")
+            print("i guess i'll just have to scrape the web instead :(")
+            self.use_google_api = False
+        else:
             print("yayy i have google api keys :D")
             self.use_google_api = True
             self.google_key = GOOGLE_KEY
             self.google_cx = GOOGLE_CX
-        else:
-            print("oh shoot, i dont have google api keys :(")
-            print("i guess i'll just have to scrape the web instead :(")
-            self.use_google_api = False
 
-        if OPENAI_KEY == "YOUR_OPENAI_KEY":
+        # OpenAI API key is required
+        if OPENAI_KEY in ("YOUR_OPENAI_KEY", ""):
             print("nooo!! i dont have an openai key :( i cant generate text... i am useless :(")
             raise Exception("No OpenAI key provided")
 
