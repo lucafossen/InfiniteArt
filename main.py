@@ -98,30 +98,16 @@ class ArtCreatorAgent:
         If you have a Google Custom Search API key, the bot will use that to get search results.
         If you don't have a Google Custom Search API key, the bot will scrape the web normally.
         """
-        if self.use_google_api:
-            self.scrape_web_with_api()
-        elif not self.use_google_api:
-            self.scrape_web_without_api()
-
-    def scrape_web_without_api(self):
-        url = f"https://www.google.com/search?q={self.mood}"
-
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"}
-
         print("googling", self.mood, "for epic inspiration...\n")
-        response = requests.get(url, headers=headers)
-        if response.status_code == 200:
-            print("yayy google let me in!")
-        else:
-            print("oh no google blocked me :(")
-        soup = BeautifulSoup(response.text, "html.parser")
-        search_results = soup.select(".g")
 
-        # Search for content related to the agent's moods
+        if self.use_google_api:
+            search_results = self.scrape_web_with_api()
+        else:
+            search_results = self.scrape_web_without_api()
+
         threshhold = 0.8
         for result in search_results:
-            url = result.select_one("a")["href"]
+            url = result.get("link")
             print("ok imma clickin on", url, "\n")
             response = requests.get(url)
             soup = BeautifulSoup(response.text, "html.parser")
@@ -135,14 +121,30 @@ class ArtCreatorAgent:
             else:
                 threshhold -= 0.1
 
+    def scrape_web_without_api(self):
+        url = f"https://www.google.com/search?q={self.mood}"
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"}
+
+        # Make the web call
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            print("yayy google let me in!")
+        else:
+            print("oh no google blocked me :(")
+        soup = BeautifulSoup(response.text, "html.parser")
+        search_results = soup.select(".g")
+
+        return [{"link": result.select_one("a")["href"]} for result in search_results]
+
     def scrape_web_with_api(self):
         """Scrape the web using Google's Custom Search API to find a topic
 
         This is an alternative to the scrape_web() method above.
 
         """
-        # Search for content related to the agent's mood
-        print("googling", self.mood, "for epic inspiration...\n")
+        # Make the API call
         search_url = "https://www.googleapis.com/customsearch/v1"
         search_params = {
             "key": self.google_key,
@@ -152,19 +154,7 @@ class ArtCreatorAgent:
         search_response = requests.get(search_url, params=search_params).json()
         search_results = search_response.get("items", [])
 
-        # Extract a topic from the search results
-        for result in search_results:
-            url = result.get("link")
-            print("ok imma clickin on", url, "\n")
-            response = requests.get(url)
-            soup = BeautifulSoup(response.text, "html.parser")
-
-            art = self.most_artistic_sentence(soup)
-            if art["score"] > 0.8:
-                print("\n\n Okey so hear me out, i read this on the web and thought it was sooo cooool:\n\n", art["text"], "\n")
-                self.art_topic = art["text"]
-                self.source = url
-                break
+        return search_results
 
     def generate_base_image(self):
             print("-"*50)
@@ -287,12 +277,10 @@ def apply_image_edits(image, opinions):
 
 
 # Main function
-def main():
+def main(artworks=1):
     # Get the number of artworks to create from the command line
     if len(sys.argv) > 1:
         artworks = int(sys.argv[1])
-    else:
-        artworks = 1
 
     # Create and use the ArtCreatorAgent
     agent = ArtCreatorAgent()
@@ -307,4 +295,4 @@ def main():
             continue
 
 if __name__ == "__main__":
-    main()
+    main(1)
